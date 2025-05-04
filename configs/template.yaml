@@ -1,0 +1,138 @@
+SERVER_CONFIGS:
+    RANDOM_SEED: 0
+    SERVER_TYPE: NORMAL                 # Options: [NORMAL, FILTER]
+    RUN_DEVICE: cuda:0                  # Options: [auto, cpu, cuda]
+    EVALUATE_SERVER: True               # Options: [True, False]
+    NUM_TRAIN_ROUND: 2
+    MIN_NUM_CLIENTS: 20
+    TRAINING_SAMPLE_FRACTION: 1
+    MIN_TRAINING_SAMPLE_SIZE: 20
+    EVALUATE_SAMPLE_FRACTION: 0.05
+    MIN_EVALUATE_SAMPLE_SIZE: 1
+    CLIENTS_MANAGER: DYNAMIC-ADVERSARIAL    # Options: [SIMPLE, ADVERSARIAL, HONEST, UPPERBOUND, DYNAMIC-ADVERSARIAL] 
+    AGGREGATE_STRAT: FED-AVERAGE            # Options: [FED-AVERAGE, FED-ROBUSTAVG, FED-KRUM, FED-MEDIAN, FED-GEOMED, FED-TRIMAVG, FED-BULYAN]
+    AGGR_STRAT_ARGS: 
+        variation: null
+        aggregator_to_use: null
+
+CLIENT_CONFIGS:
+    RUN_DEVICE: cuda:0                  # Options: [auto, cpu, cuda]
+    EVALUATE: False
+    LOCAL_EPCH: 10
+    BATCH_SIZE: 128
+    CRITERION: CROSSENTROPY             # Options: [CROSSENTROPY, NLLL]
+    INITIAL_LR: 0.01
+    LEARN_RATE: 0.01
+    WARMUP_RDS: 0
+    LR_SCHEDULER: STATIC                # [STATIC, 3-STEP, CUSTOM]
+    SCHEDULER_ARGS:
+        milestones: [0.25, 0.50, 0.75]
+        gamma: 0.5
+    OPTIMIZER: SGD                      # Options: [ADAM, SGD]
+    OPTIM_ARG:
+        momentum: 0.9
+        nesterov: True
+        weight_decay: 0.0001
+
+DATASET_CONFIGS:
+    DATASET_NAME: MNIST             # Options: [MNIST, EMNIST, FMNIST, CIFAR-10]
+    DATASET_PATH: ./temp/datasets/
+    DATASET_DOWN: True
+    SPLIT: True
+    SPLIT_METHOD: DIRICHLET-BY-CLASS    # Options: [DIRICHLET-BY-CLASS, DIRICHLET-BY-SAMPLES]
+    DIRICHLET_ALPHA: 100.0
+    MIN_PARTITION_SIZE: 0               # Specify minimum sample size per partition. 
+                                        # Performs repetitions to satisfy this value.
+    CLASSES_PER_WORKER: 0               # Number of classes per worker, used with 
+                                        # DIRICHLET-BY-SAMPLES, 0 means all classes.
+    RANDOM_SEED: 0
+
+MODEL_CONFIGS:
+    MODEL_NAME: SIMPLE-CNN        # Options: [
+                                        #       SIMPLE-MLP, SIMPLE-CNN, LENET-1CH, 
+                                        #       LENET-3CH, LENET-3CH-BN, PRERESNET-20
+                                        #       RESNET-18-CUSTOM, RESNET-18-PYTORCH
+                                        #   ]
+    NUM_CLASSES: 10
+                                        # Path of pre-trained weights, set to null
+                                        # to skip pre-trained weight initialization.
+    WEIGHT_PATH: null                   # ./helper_code/pretrained_weights/model-exp_002.pt
+
+OUTPUT_CONFIGS:
+    WANDB_LOGGING: False
+    RESULT_LOG_PATH: ./temp/run_results/
+
+EXPERIMENT_CONFIGS:                     # Normally used to pass configs to malicious clients
+    MAL_SHARED_DATA: False              # Whether malicious clients have shared dataset
+    MAL_CLIENT_FRAC: 0.4
+    MAL_CLIENT_TYPE: SIGNFLIP           # Options: [
+                                        #       RANDOM, MPAF, ALIE, MIMIC, 
+                                        #       BACKDOOR, SIGNFLIP, LABELFLIP
+                                        #   ]
+
+    MAL_HYPER_PARAM:                    # Common malicious attack configs
+        ATTACK_ROUND: 0                 # Rounds after which to start the malicious attack
+        ATTACK_RATIO: 1.0
+
+        RANDOM_CONFIG:                  # NOISE specific attack configs
+            TYPE: NORMAL               # Options: [UNIFORM, NORMAL]
+                                        # In case of normal distribution specify the following 
+                                        # additional parameters
+            NORM_SCALE: 4.0
+            LOCATION: 0                 # The location parameter i.e. the mean
+            SCALE: 1.0                  # The scale parameter i.e. the variance
+
+        SIGNFLIP_CONFIG:                # SIGNFLIP specific attack configs
+            SCALE_FACTOR: 4.0
+
+        MPAF_CONFIG:                    # MPAF specific attack configs
+            TARGET_MODEL: ./temp/mal_weights/malicious_model_mnist.pt
+            SCALE_FACTOR: 1_000_000
+
+        LABELFLIP_CONFIG:      # LABELFLIP specific attack configs
+            FLIP_VERSION: v1
+            SCALE_FACTOR: 1.0
+            LOCAL_EPOCHS: 10
+            LEARN_RATE: 0.01
+            TARGETS:
+                - SOURCE_LABEL: 0
+                  TARGET_LABEL: 1
+                - SOURCE_LABEL: 1
+                  TARGET_LABEL: 2
+                - SOURCE_LABEL: 2
+                  TARGET_LABEL: 3
+                - SOURCE_LABEL: 3
+                  TARGET_LABEL: 4
+                - SOURCE_LABEL: 4
+                  TARGET_LABEL: 5
+                - SOURCE_LABEL: 5
+                  TARGET_LABEL: 6
+                - SOURCE_LABEL: 6
+                  TARGET_LABEL: 7
+                - SOURCE_LABEL: 7
+                  TARGET_LABEL: 8
+                - SOURCE_LABEL: 8
+                  TARGET_LABEL: 9
+                - SOURCE_LABEL: 9
+                  TARGET_LABEL: 0
+
+        BACKDOOR_CONFIG:                # BACKDOOR specific attack configs
+            BACK_VERSION: v1
+            SCALE_FACTOR: 1.0
+            LEARN_RATE: 0.01
+            LOCAL_EPOCHS: 5
+            V1_SPECS:
+                TARGETS:
+                    - SOURCE_LABEL: 0
+                      TARGET_LABEL: 8
+            V2_SPECS:
+                TARGET_LABEL: 2
+                POISON_RATIO: 0.2
+            TRIGGER_TYPE:  DEQUAL        # Options: [EQUAL(=), DEQUAL(==), PLUS(+), DPLUS(++)]
+            TRIGGER_SPECS:
+                WIDTH: 7
+                HEIGHT: 1
+                GAP_X: 1
+                GAP_Y: 1
+                SHIFT_X: 2
+                SHIFT_Y: 2
