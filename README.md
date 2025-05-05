@@ -1,6 +1,6 @@
 # Bayesian Robust Aggregation for Federated Learning (BRA-FL)
 
-This repository contains the official implementation of the paper:  
+This repository contains the official implementation of the paper:
 
 <div align="center">
 <h2 style="border-bottom:0px none #000; margin-bottom: 0;"><a href="link-to-arxiv">Bayesian Robust Aggregation for Federated Learning</a></h2>
@@ -20,11 +20,11 @@ Federated Learning (FL) enables decentralized training of machine learning model
 
 We propose **Bayesian Robust Aggregation** — a simple yet powerful framework for robust aggregation in FL based on:
 
-- Bayesian inference under the **Huber $\epsilon$-contamination model**
+<!-- - Bayesian inference under the **Huber $\epsilon$-contamination model** -->
+
 - Adaptive, **parameter-free**, and **generalizable** design
 - Applicability to **i.i.d.** and **non-i.i.d.** settings
 - Strong defense against **sign-flip**, **backdoor**, and other adversarial attacks
-
 
 ## 📈 Highlights
 
@@ -33,7 +33,6 @@ We propose **Bayesian Robust Aggregation** — a simple yet powerful framework f
 - 📦 Easy to plug into existing FL pipelines
 - 📊 Outperforms or matches state-of-the-art under various threat models
 
-
 ## 🚀 Getting Started
 
 ### 1. Clone the repo
@@ -41,7 +40,7 @@ We propose **Bayesian Robust Aggregation** — a simple yet powerful framework f
 ```bash
 git clone https://github.com/SciML-FL/bra-fl
 cd bra-fl
-````
+```
 
 ### 2. Install dependencies
 
@@ -57,17 +56,16 @@ pip install -r requirements.txt
 
 **TO BE ADDED**
 
-
 ## 🧪 Method Summary
 
-* We formulate robust aggregation as **likelihood maximization** under the Huber contamination model.
-* We assume each client update is either:
+<!-- * We formulate robust aggregation as **likelihood maximization** under the Huber contamination model. -->
 
-  * **Benign**: aligned with the true gradient direction
-  * **Malicious**: arbitrary or adversarial noise
-* We perform **inference over a binary latent variable** for each client to estimate the true mean update vector robustly.
+- We assume each client update is either:
 
+  - **Benign**: aligned with the true gradient direction
+  - **Malicious**: arbitrary or adversarial noise
 
+- We perform **inference over a binary latent variable** for each client to estimate the true mean update vector robustly.
 
 ## 🤝 Acknowledgements
 
@@ -77,14 +75,15 @@ This work was supported by Uppsala University. The computations were enabled by 
 
 For questions or collaborations:
 
-* Aleksandr Karakulev — [aleksandr.karakulev@it.uu.se](mailto:aleksandr.karakulev@it.uu.se)
-* Usama Zafar — [usama.zafar@it.uu.se](mailto:usama.zafar@it.uu.se)
+- Aleksandr Karakulev — [aleksandr.karakulev@it.uu.se](mailto:aleksandr.karakulev@it.uu.se)
+- Usama Zafar — [usama.zafar@it.uu.se](mailto:usama.zafar@it.uu.se)
 
 ## 📄 Citation
 
 If you use this work, please cite:
 
 **TO BE UPDATED**
+
 ```bibtex
 @article{karakulev2025brafl,
   title={Bayesian Robust Aggregation for Federated Learning},
