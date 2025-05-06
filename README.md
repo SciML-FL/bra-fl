@@ -3,7 +3,7 @@
 This repository contains the official implementation of the paper:
 
 <div align="center">
-<h2 style="border-bottom:0px none #000; margin-bottom: 0;"><a href="link-to-arxiv">Bayesian Robust Aggregation for Federated Learning</a></h2>
+<h2 style="border-bottom:0px none #000; margin-bottom: 0;"><a href="https://www.arxiv.org/abs/2505.02490">Bayesian Robust Aggregation for Federated Learning</a></h2>
 
   <p style="border-bottom:0px none #000; margin-bottom: 0;">
     <a href="https://scholar.google.com/citations?user=XNBDwTkAAAAJ&hl=en">Aleksandr Karakulev</a> | 
@@ -82,13 +82,14 @@ For questions or collaborations:
 
 If you use this work, please cite:
 
-**TO BE UPDATED**
-
 ```bibtex
-@article{karakulev2025brafl,
-  title={Bayesian Robust Aggregation for Federated Learning},
-  author={Aleksandr Karakulev and Usama Zafar and Salman Toor and Prashant Singh},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2025},
+@article{karakulev2025bayesianrobustaggregationfederated,
+      title={Bayesian Robust Aggregation for Federated Learning}, 
+      author={Aleksandr Karakulev and Usama Zafar and Salman Toor and Prashant Singh},
+      year={2025},
+      eprint={2505.02490},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2505.02490}, 
 }
 ```
