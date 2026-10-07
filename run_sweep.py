@@ -16,7 +16,21 @@ from tools.experiments.build_suite import build_suite, load_manifest
 from fedml.configs import parse_configs
 
 ROOT = Path(__file__).resolve().parent
-SUITE = ROOT / "papers/p02_bayesian_aggregation/experiments/2026_bayesian/suite.yaml"
+
+
+def find_suite() -> Path:
+    """Use the standalone layout, or locate this suite in the private paper hub."""
+    standalone = ROOT / "experiments/suite.yaml"
+    if standalone.is_file():
+        return standalone
+    candidates = [path for path in ROOT.glob("papers/*/experiments/*/suite.yaml")
+                  if load_manifest(path).get("suite_id") == "p02-2026-bayesian"]
+    if len(candidates) != 1:
+        raise FileNotFoundError("Expected experiments/suite.yaml or one matching paper-hub suite")
+    return candidates[0]
+
+
+SUITE = find_suite()
 DATA_FOLDERS = {
     "CIFAR-10": "cifar", "CIFAR-100": "cifar",
     "TINY-IMAGENET": "tiny-imagenet-200", "UCIML-PARKINSONS": "parkinsons",

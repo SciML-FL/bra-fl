@@ -18,7 +18,7 @@ from fedml.data.split import CustomDataset
 from fedml.models import load_model
 from fedml.run_federated import resolve_run_devices, single_node_simulation
 from fedml.utils.random import setup_random_seeds
-from run_sweep import ROOT, verify_result
+from run_sweep import ROOT, SUITE, verify_result
 
 # Keep this synthetic test fast, including its spawned worker.
 torch.set_num_threads(1)
@@ -50,7 +50,7 @@ def main() -> int:
     if output.exists() and (not output.is_dir() or any(output.iterdir())):
         parser.error(f"Output must be absent or empty: {output}")
     output.mkdir(parents=True, exist_ok=True)
-    config = parse_configs(ROOT / "papers/p02_bayesian_aggregation/experiments/2026_bayesian/templates/cifar10.yaml")
+    config = parse_configs(SUITE.parent / "templates/cifar10.yaml")
     config["SERVER_CONFIGS"].update(
         RANDOM_SEED=333, SERVER_TYPE="NORMAL", NUM_TRAIN_ROUND=1,
         MIN_NUM_CLIENTS=2, MIN_TRAINING_SAMPLE_SIZE=2, TRAINING_SAMPLE_FRACTION=1.0,

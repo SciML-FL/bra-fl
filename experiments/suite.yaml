@@ -3,7 +3,7 @@ suite_id: p02-2026-bayesian
 paper_id: p02_bayesian_aggregation
 prefix: exp
 start_offset: 0
-default_output_root: work/generated_configs/p02_bayesian_aggregation/2026_bayesian
+default_output_root: "work/generated_configs"
 
 experiments:
   - id: c1-cifar10

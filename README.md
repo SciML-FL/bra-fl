@@ -91,12 +91,12 @@ The runner writes effective configurations, process logs, a run status file, mod
 | C4, intermittent attacks | `c4-intermittent` | 66 | 1717–1782 |
 | C5, main-page plot | `c5-main-page-plot` | 2 | 1783–1784 |
 
-The full matrix contains **1,784 configurations**. Definitions are in `papers/p02_bayesian_aggregation/experiments/2026_bayesian/`. The manifest records contiguous IDs and expected counts; templates supply complete defaults and sweeps override them. Coupled YAML axes use the custom safe loader in `fedml/configs/parser.py`. In particular, an explicitly assumed malicious-client count of zero in C2 is retained as zero.
+The full matrix contains **1,784 configurations**. Definitions are in `experiments/`. The manifest records contiguous IDs and expected counts; templates supply complete defaults and sweeps override them. Coupled YAML axes use the custom safe loader in `fedml/configs/parser.py`. In particular, an explicitly assumed malicious-client count of zero in C2 is retained as zero.
 
 You can also generate configurations without launching training:
 
 ```sh
-python -m tools.experiments.build_suite papers/p02_bayesian_aggregation/experiments/2026_bayesian/suite.yaml --dry-run --quiet
+python -m tools.experiments.build_suite experiments/suite.yaml --dry-run --quiet
 ```
 
 ## Datasets and weights
