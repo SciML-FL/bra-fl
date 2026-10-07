@@ -35,7 +35,7 @@ CLIENT_CONFIGS:
 
 DATASET_CONFIGS:
     DATASET_NAME: TINY-IMAGENET              # Options: [MNIST, EMNIST, FMNIST, CIFAR-10, CIFAR-100, TINY-IMAGENET, UCIML-PARKINSONS]
-    DATASET_PATH: work/data/tiny-imagenet-200
+    DATASET_PATH: "work/data/tiny-imagenet-200"
     DATASET_DOWN: False
     SPLIT: True
     SPLIT_METHOD: DIRICHLET-BY-CLASS    # Options: [DIRICHLET-BY-CLASS, DIRICHLET-BY-SAMPLES, UNIFORM-RANDOM]
@@ -59,11 +59,11 @@ MODEL_CONFIGS:
     INPUT_DIM: 19                       # Used only for DNN-REGRESSOR model
 
 OUTPUT_CONFIGS:
-    RESULT_LOG_PATH: work/runs/run_results/
+    RESULT_LOG_PATH: "work/runs/run_results/"
     WANDB_LOGGING: False
     WANDB_CONFIGS:
-        PROJECT: "anonymous-submission"
-        DIR: work/wandb
+        PROJECT:  "anonymous-submission"
+        DIR: "work/wandb"
 
 EXPERIMENT_CONFIGS:                     # Normally used to pass configs to malicious clients
     BATCH_TRAINING: False               # Whether to train batch-wise (Distributed SGD). If set

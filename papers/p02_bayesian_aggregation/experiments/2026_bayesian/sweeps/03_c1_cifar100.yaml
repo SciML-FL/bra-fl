@@ -1,6 +1,6 @@
 # Dataset + Model related configurations
 !!python/tuple [DATASET_NAME, DATASET_PATH, MODEL_CONFIGS/MODEL_NAME]: 
-      - [CIFAR-100,  work/data/cifar,                     RESNET-18-CUSTOM]
+      - [CIFAR-100,  "work/data/cifar",                     RESNET-18-CUSTOM]
 
 DATASET_DOWN: False
 SPLIT_METHOD: DIRICHLET-BY-CLASS
@@ -46,4 +46,4 @@ MAL_CLIENT_TYPE: [null, ALIE, LABELFLIP, SIGNFLIP, IPM]
       - [2, 2]
 
 # Unrelated Output Configurations
-OUTPUT_CONFIGS/RESULT_LOG_PATH: work/runs/c1/cifar100/run_results/
+OUTPUT_CONFIGS/RESULT_LOG_PATH: "work/runs/c1/cifar100/run_results/"

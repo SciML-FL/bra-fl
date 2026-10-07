@@ -1,6 +1,6 @@
 # Dataset + Model related configurations
 !!python/tuple [DATASET_NAME, DATASET_PATH, MODEL_CONFIGS/MODEL_NAME]: 
-      - [CIFAR-10,  work/data/cifar,                     RESNET-18-CUSTOM]
+      - [CIFAR-10,  "work/data/cifar",                     RESNET-18-CUSTOM]
 
 DATASET_DOWN: False
 SPLIT_METHOD: DIRICHLET-BY-CLASS
@@ -50,4 +50,4 @@ _ABLATION_NMAL: [0, 1, 3, 6, 9]
       - [2, 2]
 
 # Unrelated Output Configurations
-OUTPUT_CONFIGS/RESULT_LOG_PATH: work/runs/c2/run_results/
+OUTPUT_CONFIGS/RESULT_LOG_PATH: "work/runs/c2/run_results/"

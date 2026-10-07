@@ -4,6 +4,7 @@ paper_id: p02_bayesian_aggregation
 prefix: exp
 start_offset: 0
 default_output_root: work/generated_configs/p02_bayesian_aggregation/2026_bayesian
+
 experiments:
   - id: c1-cifar10
     template: templates/cifar10.yaml

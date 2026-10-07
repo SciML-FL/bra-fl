@@ -30,7 +30,7 @@ class FilteredServer(BaseServer):
         user_configs: Optional[Dict] = None,
         initial_parameters=None,
         executor_type: str = "ThreadPool",
-        max_workers: int = 1,
+        max_workers: Optional[int] = None,
     ) -> None:
         super().__init__(
             client_manager=client_manager,

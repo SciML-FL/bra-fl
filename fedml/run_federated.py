@@ -54,7 +54,7 @@ def resolve_run_devices(requested, num_gpus, min_sample_size, server_type, user_
     return [f"cuda:{index}"] * min_sample_size
 
 
-def single_node_simulation(exp_name, user_configs, executor_type, num_gpus=None, model_as_fn=False, max_workers=1):
+def single_node_simulation(exp_name, user_configs, executor_type, num_gpus=None, model_as_fn=False, max_workers=None):
 
     # Extract required user configurations
     total_clients = user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"]
@@ -224,9 +224,9 @@ def main():
         help="Client executor (default: ProcessPool)",
     )
     parser.add_argument("--device", default=None, help="Override config device: cpu, auto, cuda, or cuda:N")
-    parser.add_argument("--max-workers", type=int, default=1, help="Maximum client processes/threads (default: 1)")
+    parser.add_argument("--max-workers", type=int, default=None, help="Maximum client processes/threads (default: twice the sampled clients; use 1 locally)")
     args = parser.parse_args()
-    if args.max_workers < 1:
+    if args.max_workers is not None and args.max_workers < 1:
         parser.error("--max-workers must be positive")
 
     user_configs = parse_configs(args.config_file)

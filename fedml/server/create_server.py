@@ -9,9 +9,9 @@ def create_server(
         strategy: Callable,
         user_configs: dict,
         executor_type: str,
-        max_workers: int = 1,
         initial_parameters=None,
         experiment_manager=None,
+        max_workers: int | None = None,
     ):
     """Create and return the appropriate FL server instance."""
 

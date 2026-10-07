@@ -1,6 +1,6 @@
 # Dataset + Model related configurations
 !!python/tuple [DATASET_NAME, DATASET_PATH, MODEL_CONFIGS/MODEL_NAME]: 
-      - [UCIML-PARKINSONS,  work/data/parkinsons,                     DNN-REGRESSOR]
+      - [UCIML-PARKINSONS,  "work/data/parkinsons",                     DNN-REGRESSOR]
 
 DATASET_DOWN: False
 SPLIT_METHOD: UNIFORM-RANDOM
@@ -46,4 +46,4 @@ MAL_CLIENT_TYPE: [null, ALIE, SIGNFLIP, IPM]
       - [2, 2]
 
 # Unrelated Output Configurations
-OUTPUT_CONFIGS/RESULT_LOG_PATH: work/runs/c1/parkinson/run_results/
+OUTPUT_CONFIGS/RESULT_LOG_PATH: "work/runs/c1/parkinson/run_results/"

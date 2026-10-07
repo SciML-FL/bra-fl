@@ -31,15 +31,15 @@ class BaseServer:
         user_configs: Optional[Dict] = None,
         initial_parameters=None,
         executor_type: Optional[str] = "ThreadPool",
-        max_workers: int = 1,
+        max_workers: Optional[int] = None,
     ) -> None:
         self.experiment_manager = experiment_manager
         self.user_configs = user_configs
         self.client_manager = client_manager
         self.strategy = strategy
-        if max_workers < 1:
+        if max_workers is not None and max_workers < 1:
             raise ValueError("max_workers must be positive")
-        self.max_workers = max_workers
+        self.max_workers = self.strategy.min_fit_clients * 2 if max_workers is None else max_workers
 
         self.set_initial_parameters(initial_parameters=initial_parameters)
 
