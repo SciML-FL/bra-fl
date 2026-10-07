@@ -1,7 +1,5 @@
 """A function to create desired type of FL server."""
-from typing import Optional
-
-# from flwr.client import Client
+from typing import Optional, Callable
 
 def create_client(
         client_type: Optional[str],
@@ -10,79 +8,52 @@ def create_client(
         testset,
         process: bool,
         configs: dict,
+        # model_fn: Optional[Callable] = None,
+        run_device: Optional[str] = None,
     ):
     """Function to create the appropriat FL server instance."""
 
+    # Shared kwargs for all clients
+    base_kwargs = dict(
+        client_id=client_id,
+        trainset=trainset,
+        testset=testset,
+        # model_fn=model_fn,
+        process=process,
+        batch_train=configs["BATCH_TRAINING"],
+        run_device=run_device,
+    )
+
     if (client_type == "HONEST") or (client_type is None):
-        from .clients.honest_client import HonestClient
-        return HonestClient(
-            client_id=client_id,
-            trainset=trainset,
-            testset=testset,
-            process=process,
-        )
-    elif client_type == "RANDOM":
-        from .clients.malicious_random import RandomUpdateClient
-        return RandomUpdateClient(
-            client_id=client_id,
-            trainset=trainset,
-            testset=testset,
-            process=process,
-            attack_config = configs["MAL_HYPER_PARAM"],
-        )
+        from .honest_client import HonestClient
+        return HonestClient(**base_kwargs)
+
+    # All malicious clients additionally require attack_config
+    attack_kwargs = {**base_kwargs, "attack_config": configs["MAL_HYPER_PARAM"]}
+
+    if client_type == "RANDOM":
+        from .malicious.random import RandomUpdateClient
+        return RandomUpdateClient(**attack_kwargs)
     elif client_type == "ALIE":
-        from .clients.malicious_alie import ALIEClient
-        return ALIEClient(
-            client_id=client_id,
-            trainset=trainset,
-            testset=testset,
-            process=process,
-            attack_config = configs["MAL_HYPER_PARAM"],
-        )
+        from .malicious.alie import ALIEClient
+        return ALIEClient(**attack_kwargs)
+    elif client_type == "IPM":
+        from .malicious.ipm import IPMClient
+        return IPMClient(**attack_kwargs)
     elif client_type == "MIMIC":
-        from .clients.malicious_mimic import MIMICClient
-        return MIMICClient(
-            client_id=client_id,
-            trainset=trainset,
-            testset=testset,
-            process=process,
-            attack_config = configs["MAL_HYPER_PARAM"],
-        )
+        from .malicious.mimic import MIMICClient
+        return MIMICClient(**attack_kwargs)
     elif client_type == "SIGNFLIP":
-        from .clients.malicious_signflip import SignFlipClient
-        return SignFlipClient(
-            client_id=client_id,
-            trainset=trainset,
-            testset=testset,
-            process=process,
-            attack_config = configs["MAL_HYPER_PARAM"],
-        )        
+        from .malicious.signflip import SignFlipClient
+        return SignFlipClient(**attack_kwargs)
     elif client_type == "MPAF":
-        from .clients.malicious_mpaf import ModelReplacementClient
-        return ModelReplacementClient(
-            client_id=client_id,
-            trainset=trainset,
-            testset=testset,
-            process=process,
-            attack_config = configs["MAL_HYPER_PARAM"],
-        )
+        from .malicious.mpaf import ModelReplacementClient
+        return ModelReplacementClient(**attack_kwargs)
     elif client_type == "LABELFLIP":
-        from .clients.malicious_labelflip import LabelFlippingClient
-        return LabelFlippingClient(
-            client_id=client_id,
-            trainset=trainset,
-            testset=testset,
-            process=process,
-            attack_config = configs["MAL_HYPER_PARAM"],
-        )
+        from .malicious.labelflip import LabelFlippingClient
+        return LabelFlippingClient(**attack_kwargs)
     elif client_type == "BACKDOOR":
-        from .clients.malicious_backdoor import BackdoorClient
-        return BackdoorClient(
-            client_id=client_id,
-            trainset=trainset,
-            testset=testset,
-            process=process,
-            attack_config = configs["MAL_HYPER_PARAM"],
-        )
+        from .malicious.backdoor import BackdoorClient
+        return BackdoorClient(**attack_kwargs)
     else:
-        raise ValueError(f"Invalid server {client_type} requested.")
+        raise ValueError(f"Invalid client type '{client_type}' requested.")

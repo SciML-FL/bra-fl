@@ -1,5 +1,7 @@
-"""A function to create desired type of FL server."""
+"""Factory function for creating FL server instances."""
+
 from typing import Callable
+
 
 def create_server(
         server_type: str,
@@ -7,21 +9,32 @@ def create_server(
         strategy: Callable,
         user_configs: dict,
         executor_type: str,
-        initial_parameters = None,
-        experiment_manager = None,
+        max_workers: int = 1,
+        initial_parameters=None,
+        experiment_manager=None,
     ):
-    """Function to create the appropriat FL server instance."""
-    
-    assert server_type in ["NORMAL", "FILTER"], f"Invalid server {server_type} requested."
+    """Create and return the appropriate FL server instance."""
 
     if server_type == "NORMAL":
-        from .servers.server import Server
-        return Server(
+        from .base_server import BaseServer
+        return BaseServer(
             client_manager=client_manager,
             strategy=strategy,
             experiment_manager=experiment_manager,
             initial_parameters=initial_parameters,
             executor_type=executor_type,
+            max_workers=max_workers,
+        )
+    elif server_type == "FILTER":
+        from .filtered_server import FilteredServer
+        return FilteredServer(
+            client_manager=client_manager,
+            strategy=strategy,
+            experiment_manager=experiment_manager,
+            initial_parameters=initial_parameters,
+            user_configs=user_configs,
+            executor_type=executor_type,
+            max_workers=max_workers,
         )
     else:
-        raise ValueError(f"Invalid server {server_type} requested.")
+        raise ValueError(f"Invalid server type '{server_type}' requested.")

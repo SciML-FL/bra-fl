@@ -172,3 +172,11 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Workstation run artifacts
+.venv/
+work/
+temp/
+.DS_Store
+Thumbs.db
+*.zip

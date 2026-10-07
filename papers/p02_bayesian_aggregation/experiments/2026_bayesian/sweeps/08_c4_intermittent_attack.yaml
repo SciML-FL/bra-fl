@@ -1,0 +1,48 @@
+# Dataset + Model related configurations
+!!python/tuple [DATASET_NAME, DATASET_PATH, MODEL_CONFIGS/MODEL_NAME]: 
+      - [CIFAR-10,  work/data/cifar,                     RESNET-18-CUSTOM]
+
+DATASET_DOWN: False
+SPLIT_METHOD: DIRICHLET-BY-CLASS
+DIRICHLET_ALPHA: 1.0
+
+# Server configurations
+CLIENTS_MANAGER: SIMPLE
+NUM_TRAIN_ROUND: 100
+
+MIN_NUM_CLIENTS: 20
+TRAINING_SAMPLE_FRACTION: 1.0
+MIN_TRAINING_SAMPLE_SIZE: 20
+EVALUATE_SAMPLE_FRACTION: 0.05
+MIN_EVALUATE_SAMPLE_SIZE: 1
+
+# Attack Related configs
+ATTACK_ROUND: 80
+MAL_SHARED_DATA: False
+MAL_CLIENT_FRAC: 0.45
+MAL_CLIENT_TYPE: [ALIE, IPM]
+
+ 
+# Each row supplies the BASE AGGR_STRAT_ARGS dict for that strategy; the swept
+# parameter's value here is just a placeholder that post_processing overwrites.
+!!python/tuple [SERVER_CONFIGS/SERVER_TYPE, SERVER_CONFIGS/AGGREGATE_STRAT, SERVER_CONFIGS/AGGR_STRAT_ARGS]:
+      - [NORMAL, FED-AVERAGE,  {}]
+      - [NORMAL, FED-MEDIAN,   {}]
+      - [NORMAL, FED-TRIMAVG,  {}]
+      - [NORMAL, FED-GEOMED,   {}]
+      - [NORMAL, FED-MIXING,   {}]
+      - [NORMAL, FED-KRUM,     {}]
+      - [NORMAL, FED-MDA,      {}]
+      - [NORMAL, FED-MEAMED,   {}]
+      - [NORMAL, FED-CAF,      {}]
+      - [NORMAL, FED-SMEA,     {}]
+      - [NORMAL, FED-BAYESIAN, {variation: v2}]
+
+# Setup for Random Seeds
+!!python/tuple [SERVER_CONFIGS/RANDOM_SEED, DATASET_CONFIGS/RANDOM_SEED]:
+      - [0, 0]
+      - [1, 1]
+      - [2, 2]
+
+# Unrelated Output Configurations
+OUTPUT_CONFIGS/RESULT_LOG_PATH: work/runs/c4/run_results/

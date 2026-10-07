@@ -1,236 +1,220 @@
-"""A function to load the desired aggregation strategy."""
+"""Factory function for creating FL aggregation strategies."""
 
+from asyncio import run
 import math
-import torch
+from fedml.data import load_data
 
-from fedml.data_handler import load_data
-from fedml.modules import (
+from fedml.strategy.helpers import (
     get_evaluate_fn,
     get_fit_config_fn,
-    get_evaluate_config_fn,
+    get_evaluate_config_fn
+)
+from fedml.strategy.metrics import (
     aggregate_fit_metrics,
     aggregate_evaluate_metrics,
 )
 
 
-def get_strategy(
-        local_models, 
-        run_devices,
-        user_configs: dict,
-    ):
-    # Check what device to use on 
-    # server side to run the computations
-    run_device = run_devices[0]
-    # run_device = ("cuda" if torch.cuda.is_available() else "cpu") \
-    #     if user_configs["SERVER_CONFIGS"]["RUN_DEVICE"] == "auto" \
-    #         else user_configs["SERVER_CONFIGS"]["RUN_DEVICE"]
-    
-    # Check wether to evaluate the global
-    # model on the server side or not
-    eval_fn = None
-    if user_configs["SERVER_CONFIGS"]["EVALUATE_SERVER"]:
-        # Load evaluation data
-        _, testset = load_data(
-            dataset_name=user_configs["DATASET_CONFIGS"]["DATASET_NAME"],
-            dataset_path=user_configs["DATASET_CONFIGS"]["DATASET_PATH"],
-            dataset_down=user_configs["DATASET_CONFIGS"]["DATASET_DOWN"]
-        )
+def get_strategy(user_configs: dict, local_models: list, model_as_fn: bool=True, run_devices: list = ["cpu"]):
+    """Build and return the configured aggregation strategy."""
 
+    server_cfg = user_configs["SERVER_CONFIGS"]
+    client_cfg = user_configs["CLIENT_CONFIGS"]
+    dataset_cfg = user_configs["DATASET_CONFIGS"]
+    model_cfg = user_configs["MODEL_CONFIGS"]
+    experiment_cfg = user_configs["EXPERIMENT_CONFIGS"]
+
+    # ------------------------------------------------------------------
+    # Server-side evaluation function (optional)
+    # ------------------------------------------------------------------
+    eval_fn = None
+    if server_cfg["EVALUATE_SERVER"]:
+        _, testset = load_data(
+            dataset_name=dataset_cfg["DATASET_NAME"],
+            dataset_path=dataset_cfg["DATASET_PATH"],
+            dataset_down=dataset_cfg["DATASET_DOWN"],
+            random_seed=dataset_cfg["RANDOM_SEED"],
+        )
         eval_fn = get_evaluate_fn(
             testset=testset,
-            model_configs=user_configs["MODEL_CONFIGS"],
-            device=run_device
+            # model_configs=model_cfg,
+            model=local_models[0],
+            model_as_fn=model_as_fn,
+            device=run_devices[0],
+            criterion_str=client_cfg["CRITERION"],
         )
 
-    # Build the fit config function
+    # ------------------------------------------------------------------
+    # Config functions
+    # ------------------------------------------------------------------
     fit_config_fn = get_fit_config_fn(
-        total_rounds=user_configs["SERVER_CONFIGS"]["NUM_TRAIN_ROUND"],
-        local_epochs=user_configs["CLIENT_CONFIGS"]["LOCAL_EPCH"],
-        lr_scheduler=user_configs["CLIENT_CONFIGS"]["LR_SCHEDULER"],
-        scheduler_args=user_configs["CLIENT_CONFIGS"]["SCHEDULER_ARGS"],
-        local_batchsize=user_configs["CLIENT_CONFIGS"]["BATCH_SIZE"],
-        learning_rate=user_configs["CLIENT_CONFIGS"]["LEARN_RATE"],
-        initial_lr=user_configs["CLIENT_CONFIGS"]["INITIAL_LR"],
-        lr_warmup_steps=user_configs["CLIENT_CONFIGS"]["WARMUP_RDS"],
-        optimizer_str=user_configs["CLIENT_CONFIGS"]["OPTIMIZER"],
-        criterion_str=user_configs["CLIENT_CONFIGS"]["CRITERION"],
-        perform_evals=user_configs["CLIENT_CONFIGS"]["EVALUATE"],
-        optim_kwargs=user_configs["CLIENT_CONFIGS"]["OPTIM_ARG"],
-
+        total_rounds=server_cfg["NUM_TRAIN_ROUND"],
+        local_epochs=client_cfg["LOCAL_EPCH"],
+        lr_scheduler=client_cfg["LR_SCHEDULER"],
+        scheduler_args=client_cfg["SCHEDULER_ARGS"],
+        local_batchsize=client_cfg["BATCH_SIZE"],
+        learning_rate=client_cfg["LEARN_RATE"],
+        initial_lr=client_cfg["INITIAL_LR"],
+        lr_warmup_steps=client_cfg["WARMUP_RDS"],
+        optimizer_str=client_cfg["OPTIMIZER"],
+        criterion_str=client_cfg["CRITERION"],
+        perform_evals=client_cfg["EVALUATE"],
+        optim_kwargs=client_cfg["OPTIM_ARG"],
+        base_seed=server_cfg["RANDOM_SEED"],
     )
-    
+
     evaluate_config_fn = get_evaluate_config_fn(
-        total_rounds=user_configs["SERVER_CONFIGS"]["NUM_TRAIN_ROUND"],
-        evaluate_bs=user_configs["CLIENT_CONFIGS"]["BATCH_SIZE"],
-        criterion_str=user_configs["CLIENT_CONFIGS"]["CRITERION"],
+        total_rounds=server_cfg["NUM_TRAIN_ROUND"],
+        evaluate_bs=client_cfg["BATCH_SIZE"],
+        criterion_str=client_cfg["CRITERION"],
     )
 
-    # Get Strategy kwargs if any
-    strategy_kwargs = user_configs["SERVER_CONFIGS"]["AGGR_STRAT_ARGS"] if user_configs["SERVER_CONFIGS"]["AGGR_STRAT_ARGS"] else dict()
+    # ------------------------------------------------------------------
+    # Base kwargs shared by every strategy
+    # ------------------------------------------------------------------
+    base_kwargs = dict(
+        local_models=local_models,
+        model_as_fn=model_as_fn,
+        run_devices=run_devices,
+        fraction_fit=server_cfg["TRAINING_SAMPLE_FRACTION"],
+        min_fit_clients=server_cfg["MIN_TRAINING_SAMPLE_SIZE"],
+        fraction_evaluate=server_cfg["EVALUATE_SAMPLE_FRACTION"],
+        min_evaluate_clients=server_cfg["MIN_EVALUATE_SAMPLE_SIZE"],
+        min_available_clients=server_cfg["MIN_NUM_CLIENTS"],
+        evaluate_fn=eval_fn,
+        on_fit_config_fn=fit_config_fn,
+        on_evaluate_config_fn=evaluate_config_fn,
+        fit_metrics_aggregation_fn=aggregate_fit_metrics,
+        evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
+    )
+
+    # Strategy-specific kwargs from config (may be empty)
+    strategy_kwargs = server_cfg.get("AGGR_STRAT_ARGS", {})
+
+    # ------------------------------------------------------------------
+    # Strategy selection
+    # ------------------------------------------------------------------
+    strategy_name = server_cfg["AGGREGATE_STRAT"]
+
+    if strategy_name == "FED-AVERAGE":
+        from .aggregators.fedavg import FederatedAverage
+        return FederatedAverage(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-BAYESIAN":
+        from .aggregators.bayesian import FederatedBayesian
+        return FederatedBayesian(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-MEDIAN":
+        from .aggregators.median import FederatedMedian
+        return FederatedMedian(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-GEOMED":
+        from .aggregators.geomed import FederatedGeometricMedian
+        return FederatedGeometricMedian(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-KRUM":
+        _resolve_krum_kwargs(strategy_kwargs, experiment_cfg, server_cfg)
+        from .aggregators.krum import FederatedKrum
+        return FederatedKrum(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-TRIMAVG":
+        _resolve_trimavg_kwargs(strategy_kwargs, experiment_cfg)
+        from .aggregators.trimmedavg import FederatedTrimmedAverage
+        return FederatedTrimmedAverage(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-MIXING":
+        _resolve_mixing_kwargs(strategy_kwargs, experiment_cfg, server_cfg)
+        from .aggregators.mixing import FederatedMixing
+        return FederatedMixing(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-BULYAN":
+        from .aggregators.bulyan import FederatedBulyan
+        return FederatedBulyan(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-MDA":
+        _resolve_mda_kwargs(strategy_kwargs, experiment_cfg, server_cfg)
+        from .aggregators.mda import FederatedMDA
+        return FederatedMDA(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-CAF":
+        _resolve_caf_kwargs(strategy_kwargs, experiment_cfg, server_cfg)
+        from .aggregators.caf import FederatedCAF
+        return FederatedCAF(**base_kwargs, **strategy_kwargs)
+
+    elif strategy_name == "FED-SMEA":
+        _resolve_smea_kwargs(strategy_kwargs, experiment_cfg, server_cfg)
+        from .aggregators.smea import FederatedSMEA
+        return FederatedSMEA(**base_kwargs, **strategy_kwargs)
     
-    # Create an instance of the 
-    # desired aggregation strategy
-    if user_configs["SERVER_CONFIGS"]["AGGREGATE_STRAT"] == "FED-AVERAGE":
-        from .strategies.federated_average import FederatedAverage
-        stratgy = FederatedAverage(
-            fraction_fit=user_configs["SERVER_CONFIGS"]["TRAINING_SAMPLE_FRACTION"],
-            min_fit_clients=user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"],
-            fraction_evaluate=user_configs["SERVER_CONFIGS"]["EVALUATE_SAMPLE_FRACTION"],
-            min_evaluate_clients=user_configs["SERVER_CONFIGS"]["MIN_EVALUATE_SAMPLE_SIZE"],
-            min_available_clients=user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"],
-            evaluate_fn=eval_fn,
-            on_fit_config_fn=fit_config_fn,
-            on_evaluate_config_fn=evaluate_config_fn,
-            fit_metrics_aggregation_fn=aggregate_fit_metrics,
-            evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-            local_models=local_models,
-            run_devices=run_devices,
-            **strategy_kwargs,
-        )
-        return stratgy
-    elif user_configs["SERVER_CONFIGS"]["AGGREGATE_STRAT"] == "FED-ROBUSTAVG":
-        from .strategies.federated_bayesian import FederatedBayesian
-        stratgy = FederatedBayesian(
-            fraction_fit=user_configs["SERVER_CONFIGS"]["TRAINING_SAMPLE_FRACTION"],
-            min_fit_clients=user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"],
-            fraction_evaluate=user_configs["SERVER_CONFIGS"]["EVALUATE_SAMPLE_FRACTION"],
-            min_evaluate_clients=user_configs["SERVER_CONFIGS"]["MIN_EVALUATE_SAMPLE_SIZE"],
-            min_available_clients=user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"],
-            evaluate_fn=eval_fn,
-            on_fit_config_fn=fit_config_fn,
-            on_evaluate_config_fn=evaluate_config_fn,
-            fit_metrics_aggregation_fn=aggregate_fit_metrics,
-            evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-            local_models=local_models,
-            run_devices=run_devices,
-            **strategy_kwargs,
-        )
-        return stratgy
-    elif user_configs["SERVER_CONFIGS"]["AGGREGATE_STRAT"] == "FED-MEDIAN":
-        from .strategies.federated_median import FederatedMedian
-        stratgy = FederatedMedian(
-            fraction_fit=user_configs["SERVER_CONFIGS"]["TRAINING_SAMPLE_FRACTION"],
-            min_fit_clients=user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"],
-            fraction_evaluate=user_configs["SERVER_CONFIGS"]["EVALUATE_SAMPLE_FRACTION"],
-            min_evaluate_clients=user_configs["SERVER_CONFIGS"]["MIN_EVALUATE_SAMPLE_SIZE"],
-            min_available_clients=user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"],
-            evaluate_fn=eval_fn,
-            on_fit_config_fn=fit_config_fn,
-            on_evaluate_config_fn=evaluate_config_fn,
-            fit_metrics_aggregation_fn=aggregate_fit_metrics,
-            evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-            local_models=local_models,
-            run_devices=run_devices,
-            **strategy_kwargs,
-        )
-        return stratgy
-    elif user_configs["SERVER_CONFIGS"]["AGGREGATE_STRAT"] == "FED-GEOMED":
-        from .strategies.federated_geomed import FederatedGeometricMedian
-        stratgy = FederatedGeometricMedian(
-            fraction_fit=user_configs["SERVER_CONFIGS"]["TRAINING_SAMPLE_FRACTION"],
-            min_fit_clients=user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"],
-            fraction_evaluate=user_configs["SERVER_CONFIGS"]["EVALUATE_SAMPLE_FRACTION"],
-            min_evaluate_clients=user_configs["SERVER_CONFIGS"]["MIN_EVALUATE_SAMPLE_SIZE"],
-            min_available_clients=user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"],
-            evaluate_fn=eval_fn,
-            on_fit_config_fn=fit_config_fn,
-            on_evaluate_config_fn=evaluate_config_fn,
-            fit_metrics_aggregation_fn=aggregate_fit_metrics,
-            evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-            local_models=local_models,
-            run_devices=run_devices,
-            **strategy_kwargs,
-        )
-        return stratgy
-    elif user_configs["SERVER_CONFIGS"]["AGGREGATE_STRAT"] == "FED-KRUM":
-        # Setup malicious client and to keep ratios if not already provided
-        if "num_malicious_clients" not in strategy_kwargs.keys() or strategy_kwargs["num_malicious_clients"] is None:
-            strategy_kwargs["num_malicious_clients"] = math.ceil(user_configs["EXPERIMENT_CONFIGS"]["MAL_CLIENT_FRAC"] * user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"])
-        if "num_clients_to_keep" not in strategy_kwargs.keys() or strategy_kwargs["num_clients_to_keep"] is None:
-            strategy_kwargs["num_clients_to_keep"] = user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"] - strategy_kwargs["num_malicious_clients"]
+    elif strategy_name == "FED-MEAMED":
+        _resolve_meamed_kwargs(strategy_kwargs, experiment_cfg, server_cfg)
+        from .aggregators.meamed import FederatedMeamed
+        return FederatedMeamed(**base_kwargs, **strategy_kwargs)
 
-        from .strategies.federated_krum import FederatedKrum
-        stratgy = FederatedKrum(
-            fraction_fit=user_configs["SERVER_CONFIGS"]["TRAINING_SAMPLE_FRACTION"],
-            min_fit_clients=user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"],
-            fraction_evaluate=user_configs["SERVER_CONFIGS"]["EVALUATE_SAMPLE_FRACTION"],
-            min_evaluate_clients=user_configs["SERVER_CONFIGS"]["MIN_EVALUATE_SAMPLE_SIZE"],
-            min_available_clients=user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"],
-            evaluate_fn=eval_fn,
-            on_fit_config_fn=fit_config_fn,
-            on_evaluate_config_fn=evaluate_config_fn,
-            fit_metrics_aggregation_fn=aggregate_fit_metrics,
-            evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-            local_models=local_models,
-            run_devices=run_devices,
-            **strategy_kwargs,
-        )
-        return stratgy
-    elif user_configs["SERVER_CONFIGS"]["AGGREGATE_STRAT"] == "FED-TRIMAVG":
-        # Setup drop/cutout ratio if not already provided
-        if "beta" not in strategy_kwargs.keys() or strategy_kwargs["beta"] is None:
-            strategy_kwargs["beta"] = user_configs["EXPERIMENT_CONFIGS"]["MAL_CLIENT_FRAC"]
-
-        from .strategies.federated_trimmedavg import FederatedTrimmedAverage
-        stratgy = FederatedTrimmedAverage(
-            fraction_fit=user_configs["SERVER_CONFIGS"]["TRAINING_SAMPLE_FRACTION"],
-            min_fit_clients=user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"],
-            fraction_evaluate=user_configs["SERVER_CONFIGS"]["EVALUATE_SAMPLE_FRACTION"],
-            min_evaluate_clients=user_configs["SERVER_CONFIGS"]["MIN_EVALUATE_SAMPLE_SIZE"],
-            min_available_clients=user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"],
-            evaluate_fn=eval_fn,
-            on_fit_config_fn=fit_config_fn,
-            on_evaluate_config_fn=evaluate_config_fn,
-            fit_metrics_aggregation_fn=aggregate_fit_metrics,
-            evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-            local_models=local_models,
-            run_devices=run_devices,
-            **strategy_kwargs,
-        )
-        return stratgy
-    elif user_configs["SERVER_CONFIGS"]["AGGREGATE_STRAT"] == "FED-MIXING":
-        # Setup malicious client and to keep ratios if not already provided
-        if "aggregator_to_use" not in strategy_kwargs.keys() or strategy_kwargs["aggregator_to_use"] is None:
-            strategy_kwargs["aggregator_to_use"] = "KRUM"
-        if "num_malicious_clients" not in strategy_kwargs.keys() or strategy_kwargs["num_malicious_clients"] is None:
-            strategy_kwargs["num_malicious_clients"] = math.ceil(user_configs["EXPERIMENT_CONFIGS"]["MAL_CLIENT_FRAC"] * user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"])        
-        if (strategy_kwargs["aggregator_to_use"] == "KRUM") and ("num_clients_to_keep" not in strategy_kwargs.keys() or strategy_kwargs["num_clients_to_keep"] is None):
-            strategy_kwargs["num_clients_to_keep"] = user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"] - strategy_kwargs["num_malicious_clients"]
-
-        from .strategies.federated_mixing import FederatedMixing
-        stratgy = FederatedMixing(
-            fraction_fit=user_configs["SERVER_CONFIGS"]["TRAINING_SAMPLE_FRACTION"],
-            min_fit_clients=user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"],
-            fraction_evaluate=user_configs["SERVER_CONFIGS"]["EVALUATE_SAMPLE_FRACTION"],
-            min_evaluate_clients=user_configs["SERVER_CONFIGS"]["MIN_EVALUATE_SAMPLE_SIZE"],
-            min_available_clients=user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"],
-            evaluate_fn=eval_fn,
-            on_fit_config_fn=fit_config_fn,
-            on_evaluate_config_fn=evaluate_config_fn,
-            fit_metrics_aggregation_fn=aggregate_fit_metrics,
-            evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-            local_models=local_models,
-            run_devices=run_devices,
-            **strategy_kwargs,
-        )
-        return stratgy
-    elif user_configs["SERVER_CONFIGS"]["AGGREGATE_STRAT"] == "FED-BULYAN":
-        from .strategies.federated_bulyan import FederatedBulyan
-        stratgy = FederatedBulyan(
-            fraction_fit=user_configs["SERVER_CONFIGS"]["TRAINING_SAMPLE_FRACTION"],
-            min_fit_clients=user_configs["SERVER_CONFIGS"]["MIN_TRAINING_SAMPLE_SIZE"],
-            fraction_evaluate=user_configs["SERVER_CONFIGS"]["EVALUATE_SAMPLE_FRACTION"],
-            min_evaluate_clients=user_configs["SERVER_CONFIGS"]["MIN_EVALUATE_SAMPLE_SIZE"],
-            min_available_clients=user_configs["SERVER_CONFIGS"]["MIN_NUM_CLIENTS"],
-            evaluate_fn=eval_fn,
-            on_fit_config_fn=fit_config_fn,
-            on_evaluate_config_fn=evaluate_config_fn,
-            fit_metrics_aggregation_fn=aggregate_fit_metrics,
-            evaluate_metrics_aggregation_fn=aggregate_evaluate_metrics,
-            local_models=local_models,
-            run_devices=run_devices,
-            **strategy_kwargs,
-        )
-        return stratgy
     else:
-        raise ValueError(f"Invalid aggregation strategy {user_configs['SERVER_CONFIGS']['AGGREGATE_STRAT']} requested.")
+        raise ValueError(f"Invalid aggregation strategy '{strategy_name}' requested.")
+
+
+# ------------------------------------------------------------------
+# Private helpers — resolve default strategy kwargs from experiment config
+# ------------------------------------------------------------------
+
+def _resolve_krum_kwargs(strategy_kwargs: dict, experiment_cfg: dict, server_cfg: dict):
+    """Fill in Krum defaults from experiment config if not explicitly set."""
+    if strategy_kwargs.get("num_malicious_clients") is None:
+        strategy_kwargs["num_malicious_clients"] = math.ceil(
+            experiment_cfg["MAL_CLIENT_FRAC"] * server_cfg["MIN_TRAINING_SAMPLE_SIZE"]
+        )
+    if strategy_kwargs.get("num_clients_to_keep") is None:
+        strategy_kwargs["num_clients_to_keep"] = (
+            server_cfg["MIN_TRAINING_SAMPLE_SIZE"] - strategy_kwargs["num_malicious_clients"]
+        )
+
+def _resolve_trimavg_kwargs(strategy_kwargs: dict, experiment_cfg: dict):
+    """Fill in TrimmedAverage defaults from experiment config if not explicitly set."""
+    if strategy_kwargs.get("beta") is None:
+        strategy_kwargs["beta"] = experiment_cfg["MAL_CLIENT_FRAC"]
+
+def _resolve_mixing_kwargs(strategy_kwargs: dict, experiment_cfg: dict, server_cfg: dict):
+    """Fill in Mixing defaults from experiment config if not explicitly set."""
+    if not strategy_kwargs.get("aggregator_to_use"):
+        strategy_kwargs["aggregator_to_use"] = "KRUM"
+    if strategy_kwargs.get("num_malicious_clients") is None:
+        strategy_kwargs["num_malicious_clients"] = math.ceil(
+            experiment_cfg["MAL_CLIENT_FRAC"] * server_cfg["MIN_TRAINING_SAMPLE_SIZE"]
+        )
+    if (
+        strategy_kwargs["aggregator_to_use"] == "KRUM"
+        and strategy_kwargs.get("num_clients_to_keep") is None
+    ):
+        strategy_kwargs["num_clients_to_keep"] = (
+            server_cfg["MIN_TRAINING_SAMPLE_SIZE"] - strategy_kwargs["num_malicious_clients"]
+        )
+
+def _resolve_caf_kwargs(strategy_kwargs: dict, experiment_cfg: dict, server_cfg: dict):
+    """Fill in CAF defaults from experiment config if not explicitly set."""
+    if strategy_kwargs.get("num_malicious_clients") is None:
+        strategy_kwargs["num_malicious_clients"] = math.ceil(
+            experiment_cfg["MAL_CLIENT_FRAC"] * server_cfg["MIN_TRAINING_SAMPLE_SIZE"]
+        )
+
+def _resolve_meamed_kwargs(strategy_kwargs: dict, experiment_cfg: dict, server_cfg: dict):
+    """Fill in MEAMED defaults from experiment config if not explicitly set."""
+    if strategy_kwargs.get("num_malicious_clients") is None:
+        strategy_kwargs["num_malicious_clients"] = math.ceil(
+            experiment_cfg["MAL_CLIENT_FRAC"] * server_cfg["MIN_TRAINING_SAMPLE_SIZE"]
+        )
+
+def _resolve_mda_kwargs(strategy_kwargs: dict, experiment_cfg: dict, server_cfg: dict):
+    """Fill in MDA defaults from experiment config if not explicitly set."""
+    if strategy_kwargs.get("num_malicious_clients") is None:
+        strategy_kwargs["num_malicious_clients"] = math.ceil(
+            experiment_cfg["MAL_CLIENT_FRAC"] * server_cfg["MIN_TRAINING_SAMPLE_SIZE"]
+        )
+
+def _resolve_smea_kwargs(strategy_kwargs: dict, experiment_cfg: dict, server_cfg: dict):
+    """Fill in SMEA defaults from experiment config if not explicitly set."""
+    if strategy_kwargs.get("num_malicious_clients") is None:
+        strategy_kwargs["num_malicious_clients"] = math.ceil(
+            experiment_cfg["MAL_CLIENT_FRAC"] * server_cfg["MIN_TRAINING_SAMPLE_SIZE"]
+        )

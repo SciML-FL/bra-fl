@@ -1,0 +1,49 @@
+# Dataset + Model related configurations
+!!python/tuple [DATASET_NAME, DATASET_PATH, MODEL_CONFIGS/MODEL_NAME]: 
+      - [CIFAR-10,  work/data/cifar,                     RESNET-18-CUSTOM]
+
+DATASET_DOWN: False
+SPLIT_METHOD: DIRICHLET-BY-CLASS
+DIRICHLET_ALPHA: 1.0
+
+# Server configurations
+CLIENTS_MANAGER: SIMPLE
+NUM_TRAIN_ROUND: 100
+
+MIN_NUM_CLIENTS: 20
+TRAINING_SAMPLE_FRACTION: 1.0
+MIN_TRAINING_SAMPLE_SIZE: 20
+EVALUATE_SAMPLE_FRACTION: 0.05
+MIN_EVALUATE_SAMPLE_SIZE: 1
+
+# Attack Related configs
+ATTACK_ROUND: 1
+MAL_SHARED_DATA: False
+MAL_CLIENT_FRAC: [0.00, 0.25, 0.40]
+MAL_CLIENT_TYPE: [null, ALIE, LABELFLIP, SIGNFLIP, IPM]
+
+# Server related configurations
+!!python/tuple [SERVER_CONFIGS/SERVER_TYPE, SERVER_CONFIGS/AGGREGATE_STRAT, SERVER_CONFIGS/AGGR_STRAT_ARGS/variation]:
+      - [NORMAL, FED-AVERAGE, null]
+      - [NORMAL, FED-MEDIAN, null]
+      - [NORMAL, FED-TRIMAVG, null]
+      - [NORMAL, FED-GEOMED, null]
+      - [NORMAL, FED-MIXING, null]
+      - [NORMAL, FED-KRUM, null]
+      - [NORMAL, FED-MDA, null]
+      - [NORMAL, FED-MEAMED, null]
+      - [NORMAL, FED-CAF, null]
+      - [NORMAL, FED-SMEA, null]
+      - [NORMAL, FED-BAYESIAN, v1]
+      - [NORMAL, FED-BAYESIAN, v2]
+      - [NORMAL, FED-BAYESIAN, v3]
+      - [NORMAL, FED-BAYESIAN, v4]
+
+# Setup for Random Seeds
+!!python/tuple [SERVER_CONFIGS/RANDOM_SEED, DATASET_CONFIGS/RANDOM_SEED]:
+      - [0, 0]
+      - [1, 1]
+      - [2, 2]
+
+# Unrelated Output Configurations
+OUTPUT_CONFIGS/RESULT_LOG_PATH: work/runs/c1/cifar10/run_results/

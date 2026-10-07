@@ -3,13 +3,12 @@
 
 import math
 import random
-import threading
 from abc import ABC, abstractmethod
-from logging import INFO, DEBUG
+from logging import INFO
 from typing import Optional
 
-from fedml.common import log
-from .criterion import Criterion
+from fedml.utils.logger import log
+from fedml.server.criterion import Criterion
 
 class ClientManager(ABC):
     """Abstract base class for managing FedML clients."""

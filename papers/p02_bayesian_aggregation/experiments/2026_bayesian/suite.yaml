@@ -1,0 +1,47 @@
+schema_version: 1
+suite_id: p02-2026-bayesian
+paper_id: p02_bayesian_aggregation
+prefix: exp
+start_offset: 0
+default_output_root: work/generated_configs/p02_bayesian_aggregation/2026_bayesian
+experiments:
+  - id: c1-cifar10
+    template: templates/cifar10.yaml
+    sweep: sweeps/02_c1_cifar10.yaml
+    output: c1/cifar10
+    expected: {count: 378, first_id: 1, last_id: 378}
+  - id: c1-cifar100
+    template: templates/cifar100.yaml
+    sweep: sweeps/03_c1_cifar100.yaml
+    output: c1/cifar100
+    expected: {count: 378, first_id: 379, last_id: 756}
+  - id: c1-tiny-imagenet
+    template: templates/tiny_imagenet.yaml
+    sweep: sweeps/04_c1_imagenet.yaml
+    output: c1/tiny_imagenet
+    expected: {count: 378, first_id: 757, last_id: 1134}
+  - id: c1-parkinson
+    template: templates/parkinson.yaml
+    sweep: sweeps/05_c1_parkinson.yaml
+    output: c1/parkinson
+    expected: {count: 294, first_id: 1135, last_id: 1428}
+  - id: c2-misspecification
+    template: templates/cifar10.yaml
+    sweep: sweeps/06_c2_misspecification_sweep.yaml
+    output: c2
+    expected: {count: 234, first_id: 1429, last_id: 1662}
+  - id: c3-subsampling
+    template: templates/cifar10.yaml
+    sweep: sweeps/07_c3_subsampling_run.yaml
+    output: c3
+    expected: {count: 54, first_id: 1663, last_id: 1716}
+  - id: c4-intermittent
+    template: templates/cifar10.yaml
+    sweep: sweeps/08_c4_intermittent_attack.yaml
+    output: c4
+    expected: {count: 66, first_id: 1717, last_id: 1782}
+  - id: c5-main-page-plot
+    template: templates/cifar10.yaml
+    sweep: sweeps/09_c5_main_page_plot.yaml
+    output: c5
+    expected: {count: 2, first_id: 1783, last_id: 1784}

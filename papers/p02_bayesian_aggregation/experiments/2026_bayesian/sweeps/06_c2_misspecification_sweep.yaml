@@ -1,0 +1,53 @@
+# Dataset + Model related configurations
+!!python/tuple [DATASET_NAME, DATASET_PATH, MODEL_CONFIGS/MODEL_NAME]: 
+      - [CIFAR-10,  work/data/cifar,                     RESNET-18-CUSTOM]
+
+DATASET_DOWN: False
+SPLIT_METHOD: DIRICHLET-BY-CLASS
+DIRICHLET_ALPHA: 1.0
+
+# Server configurations
+CLIENTS_MANAGER: SIMPLE
+NUM_TRAIN_ROUND: 100
+
+MIN_NUM_CLIENTS: 20
+TRAINING_SAMPLE_FRACTION: 1.0
+MIN_TRAINING_SAMPLE_SIZE: 20
+EVALUATE_SAMPLE_FRACTION: 0.05
+MIN_EVALUATE_SAMPLE_SIZE: 1
+
+# Attack Related configs
+ATTACK_ROUND: 1
+MAL_SHARED_DATA: False
+MAL_CLIENT_FRAC: [0.00, 0.05]
+MAL_CLIENT_TYPE: [null, ALIE]
+
+# Ablation: sweep the malicious-client count 0..9 where relevant.
+# post_processing routes this level into num_malicious_clients (Krum/MDA/MEAMED/
+# CAF/SMEA/Mixing) or beta (TrimAvg), derives Krum's num_clients_to_keep, and
+# collapses no-parameter strategies (Average/Median/GeoMed/Bayesian) to one copy.
+_ABLATION_NMAL: [0, 1, 3, 6, 9]
+ 
+# Each row supplies the BASE AGGR_STRAT_ARGS dict for that strategy; the swept
+# parameter's value here is just a placeholder that post_processing overwrites.
+!!python/tuple [SERVER_CONFIGS/SERVER_TYPE, SERVER_CONFIGS/AGGREGATE_STRAT, SERVER_CONFIGS/AGGR_STRAT_ARGS]:
+      - [NORMAL, FED-AVERAGE,  {}]
+      - [NORMAL, FED-MEDIAN,   {}]
+      - [NORMAL, FED-TRIMAVG,  {beta: null}]
+      - [NORMAL, FED-GEOMED,   {}]
+      - [NORMAL, FED-MIXING,   {num_malicious_clients: null, aggregator_to_use: KRUM}]
+      - [NORMAL, FED-KRUM,     {num_malicious_clients: null, num_clients_to_keep: null}]
+      - [NORMAL, FED-MDA,      {num_malicious_clients: null}]
+      - [NORMAL, FED-MEAMED,   {num_malicious_clients: null}]
+      - [NORMAL, FED-CAF,      {num_malicious_clients: null}]
+      - [NORMAL, FED-SMEA,     {num_malicious_clients: null}]
+      - [NORMAL, FED-BAYESIAN, {variation: v2}]
+
+# Setup for Random Seeds
+!!python/tuple [SERVER_CONFIGS/RANDOM_SEED, DATASET_CONFIGS/RANDOM_SEED]:
+      - [0, 0]
+      - [1, 1]
+      - [2, 2]
+
+# Unrelated Output Configurations
+OUTPUT_CONFIGS/RESULT_LOG_PATH: work/runs/c2/run_results/
