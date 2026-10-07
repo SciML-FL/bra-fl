@@ -13,8 +13,6 @@ from fedml.utils.typing import (
 )
 
 from fedml.utils.logger import log
-from fedml.server.client_manager import ClientManager
-from fedml.server.criterion import MaliciousSampling
 
 
 class Strategy(ABC):
@@ -45,6 +43,10 @@ class Strategy(ABC):
         evaluate_fn: Optional[Callable] = None,
         **kwargs, # Accept extra kwargs for flexibility, e.g. strategy-specific args from config
     ) -> None:
+        # Imported lazily to avoid a strategy/server import cycle when an
+        # aggregation helper is tested in isolation.
+        from fedml.server.criterion import MaliciousSampling
+
         self.local_models = local_models
         self.model_as_fn = model_as_fn
         self.run_devices = run_devices

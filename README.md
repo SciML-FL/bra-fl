@@ -90,8 +90,18 @@ The runner writes effective configurations, process logs, a run status file, mod
 | C3, client subsampling | `c3-subsampling` | 54 | 1663–1716 |
 | C4, intermittent attacks | `c4-intermittent` | 66 | 1717–1782 |
 | C5, main-page plot | `c5-main-page-plot` | 2 | 1783–1784 |
+| C6, scale sensitivity, seeds 0–2 | `c6-scale-sensitivity` | 36 | 1785–1820 |
+| C6, scale sensitivity, seeds 3–4 | `c6-scale-sensitivity-seeds-3-4` | 24 | 1821–1844 |
 
-The full matrix contains **1,784 configurations**. Definitions are in `experiments/`. The manifest records contiguous IDs and expected counts; templates supply complete defaults and sweeps override them. Coupled YAML axes use the custom safe loader in `fedml/configs/parser.py`. In particular, an explicitly assumed malicious-client count of zero in C2 is retained as zero.
+The full matrix contains **1,844 configurations**. Definitions are in `experiments/`, with `suite.yaml`, `templates/`, and `sweeps/`. The manifest records contiguous IDs and expected counts; templates supply complete defaults and sweeps override them. Coupled YAML axes use the custom safe loader in `fedml/configs/parser.py`. In particular, an explicitly assumed malicious-client count of zero in C2 is retained as zero.
+
+C6 evaluates Bayesian v2 on CIFAR-10 at aggregation-input scales 0.1, 1 and 10, with no attack, SIGNFLIP, ALIE and IPM, using five paired seeds. Scale-1 runs also record diagnostics from applying all three scales to the same client submissions. Run both C6 blocks locally with:
+
+```sh
+python run_sweep.py --only c6-scale-sensitivity --only c6-scale-sensitivity-seeds-3-4 --device cuda:0 --workers 1 --download --output-root work/c6
+```
+
+Use `--device cpu` for CPU execution or add `--dry-run` to validate the 60 configurations without training. The runner generates per-experiment YAML files under its output directory; the repository contains only their compact source definitions.
 
 You can also generate configurations without launching training:
 

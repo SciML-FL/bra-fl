@@ -147,9 +147,15 @@ def aggregate_bulyan(
 
 
 def aggregate_meamed(
-    results: list[tuple[Parameters, int]], num_malicious: int
+    results: list[tuple[Parameters, int]],
+    num_malicious: int,
+    chunk_size: int = 100_000,
 ) -> Parameters:
-    """Compute mean around median (Meamed)."""
+    """Compute mean around median (Meamed) in bounded-memory chunks.
+
+    Chunking over model coordinates keeps temporary tensors proportional to
+    ``num_clients * chunk_size`` instead of the full model size.
+    """
     # Create a list of weights and ignore the number of examples
     weights = [weights for weights, _ in results]
     n = len(weights)
@@ -157,14 +163,45 @@ def aggregate_meamed(
 
     if num_malicious * 2 >= n:
         raise ValueError(f"Cannot tolerate 2f >= n. Got f={num_malicious}, n={n}")
+    if (
+        not isinstance(chunk_size, int)
+        or isinstance(chunk_size, bool)
+        or chunk_size <= 0
+    ):
+        raise ValueError(f"chunk_size must be a positive integer. Got {chunk_size!r}")
 
-    stacked_weights = torch.stack(weights, dim=0).float()
-    median_w = stacked_weights.quantile(q=0.5, dim=0, interpolation="midpoint")
-    abs_diff = torch.abs(stacked_weights - median_w)
+    reference_shape = weights[0].shape
+    flattened_weights = [weight.reshape(-1) for weight in weights]
+    num_parameters = flattened_weights[0].numel()
+    if any(weight.shape != reference_shape for weight in weights):
+        raise ValueError("All client parameter tensors must have the same shape")
 
-    nearest_indices = torch.topk(abs_diff, k=k, dim=0, largest=False)[1]
-    nearest_weights = torch.gather(stacked_weights, dim=0, index=nearest_indices)
-    return nearest_weights.mean(dim=0)
+    aggregated = torch.empty(
+        num_parameters,
+        dtype=torch.float32,
+        device=flattened_weights[0].device,
+    )
+
+    with torch.no_grad():
+        for start in range(0, num_parameters, chunk_size):
+            end = min(start + chunk_size, num_parameters)
+            stacked_chunk = torch.stack(
+                [weight[start:end] for weight in flattened_weights], dim=0
+            ).float()
+            median_chunk = stacked_chunk.quantile(
+                q=0.5, dim=0, interpolation="midpoint"
+            )
+            nearest_indices = torch.topk(
+                torch.abs(stacked_chunk - median_chunk),
+                k=k,
+                dim=0,
+                largest=False,
+            ).indices
+            aggregated[start:end] = torch.gather(
+                stacked_chunk, dim=0, index=nearest_indices
+            ).mean(dim=0)
+
+    return aggregated.reshape(reference_shape)
 
 
 def aggregate_mda(
@@ -380,12 +417,12 @@ def _compute_distances(weights: List[Parameters]) -> torch.Tensor:
     """Compute pairwise squared Euclidean distances between weight vectors.
 
     Vectorized implementation: O(n) stacking + O(1) broadcasting,
-    replacing the previous O(n²) nested Python loop.
+    replacing the previous O(n^2) nested Python loop.
     """
     # flat_w: (n, d)
     flat_w = torch.stack(weights, dim=0).float()
 
-    # ||a - b||² = ||a||² + ||b||² - 2 * a·b
+    # ||a - b||^2 = ||a||^2 + ||b||^2 - 2 * a*b
     sq_norms = (flat_w * flat_w).sum(dim=1)  # (n,)
     distance_matrix = (
         sq_norms.unsqueeze(1)  # (n, 1)

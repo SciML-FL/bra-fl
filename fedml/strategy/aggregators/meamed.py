@@ -18,11 +18,18 @@ class FederatedMeamed(FederatedAverage):
         self,
         *,
         num_malicious_clients: int = 0,
+        chunk_size: int = 100_000,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.num_malicious_clients = num_malicious_clients
-        log(DEBUG, f"Building {self} Aggregation Strategy with num_malicious_clients: {num_malicious_clients}")
+        self.chunk_size = chunk_size
+        log(
+            DEBUG,
+            f"Building {self} Aggregation Strategy with "
+            f"num_malicious_clients: {num_malicious_clients}, "
+            f"chunk_size: {chunk_size}",
+        )
 
     def __repr__(self) -> str:
         return "FederatedMeamed"
@@ -50,7 +57,11 @@ class FederatedMeamed(FederatedAverage):
                 weights_results.append((fit_res.parameters, fit_res.num_examples))
 
         parameters_aggregated = (
-            aggregate_meamed(weights_results, self.num_malicious_clients)
+            aggregate_meamed(
+                weights_results,
+                self.num_malicious_clients,
+                chunk_size=self.chunk_size,
+            )
             if len(weights_results) > 0
             else None
         )

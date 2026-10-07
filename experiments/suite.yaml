@@ -46,3 +46,13 @@ experiments:
     sweep: sweeps/09_c5_main_page_plot.yaml
     output: c5
     expected: {count: 2, first_id: 1783, last_id: 1784}
+  - id: c6-scale-sensitivity
+    template: templates/cifar10.yaml
+    sweep: sweeps/10_c6_scale_sensitivity.yaml
+    output: c6/scale_sensitivity
+    expected: {count: 36, first_id: 1785, last_id: 1820}
+  - id: c6-scale-sensitivity-seeds-3-4
+    template: templates/cifar10.yaml
+    sweep: sweeps/11_c6_scale_sensitivity_seeds_3_4.yaml
+    output: c6/scale_sensitivity_seeds_3_4
+    expected: {count: 24, first_id: 1821, last_id: 1844}

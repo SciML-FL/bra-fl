@@ -1,0 +1,38 @@
+# Continuation of C6 with seeds 3 and 4.
+# Generates 24 paired runs: 3 scales x 4 attack settings x 2 seeds.
+
+!!python/tuple [DATASET_NAME, DATASET_PATH, MODEL_CONFIGS/MODEL_NAME]:
+      - [CIFAR-10, "work/data/cifar", RESNET-18-CUSTOM]
+
+DATASET_DOWN: False
+SPLIT_METHOD: DIRICHLET-BY-CLASS
+DIRICHLET_ALPHA: 1.0
+
+CLIENTS_MANAGER: SIMPLE
+NUM_TRAIN_ROUND: 100
+
+MIN_NUM_CLIENTS: 20
+TRAINING_SAMPLE_FRACTION: 1.0
+MIN_TRAINING_SAMPLE_SIZE: 20
+EVALUATE_SAMPLE_FRACTION: 0.05
+MIN_EVALUATE_SAMPLE_SIZE: 1
+
+ATTACK_ROUND: 1
+MAL_SHARED_DATA: False
+
+!!python/tuple [EXPERIMENT_CONFIGS/MAL_CLIENT_TYPE, EXPERIMENT_CONFIGS/MAL_CLIENT_FRAC]:
+      - [null, 0.0]
+      - [SIGNFLIP, 0.25]
+      - [ALIE, 0.25]
+      - [IPM, 0.25]
+
+!!python/tuple [SERVER_CONFIGS/SERVER_TYPE, SERVER_CONFIGS/AGGREGATE_STRAT, SERVER_CONFIGS/AGGR_STRAT_ARGS]:
+      - [NORMAL, FED-BAYESIAN, {variation: v2, aggregation_input_scale: 0.1, diagnostic_scales: null}]
+      - [NORMAL, FED-BAYESIAN, {variation: v2, aggregation_input_scale: 1.0, diagnostic_scales: !!python/list [0.1, 1.0, 10.0]}]
+      - [NORMAL, FED-BAYESIAN, {variation: v2, aggregation_input_scale: 10.0, diagnostic_scales: null}]
+
+!!python/tuple [SERVER_CONFIGS/RANDOM_SEED, DATASET_CONFIGS/RANDOM_SEED]:
+      - [3, 3]
+      - [4, 4]
+
+OUTPUT_CONFIGS/RESULT_LOG_PATH: "work/runs/c6/scale_sensitivity_seeds_3_4/run_results/"

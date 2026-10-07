@@ -11,6 +11,7 @@ def aggregate_fit_metrics(
     weight_pi=None,
     rho_hat=None,
     update_norms: Optional[Dict] = None,
+    scale_diagnostics: Optional[Dict] = None,
 ) -> Metrics:
     """Aggregate per-client fit metrics into a single metrics dict."""
     aggregated = {
@@ -37,6 +38,9 @@ def aggregate_fit_metrics(
         if torch.is_tensor(rho_hat):
             rho_hat = float(rho_hat.cpu().detach())
         aggregated["rho_hat"] = float(rho_hat)
+
+    if scale_diagnostics:
+        aggregated.update(scale_diagnostics)
 
     if update_norms:
         for key, value in update_norms.items():
